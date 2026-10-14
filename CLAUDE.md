@@ -4,20 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-This package uses **Bun** as its package manager and runtime — there is no Node dependency. The scripts pass `--bun` so Vite and `json2ts` run under the Bun runtime rather than spawning Node via their shebangs. `bun.lock` is the committed lockfile (there is no `package-lock.json`).
-
-- `bun install` — Install dependencies (use `bun install --frozen-lockfile` in CI). Note: one transitive postinstall (`rs-module-lexer`, pulled in by the optional `cem analyze` tool) is blocked by Bun's trusted-dependencies guard. Build/CI don't need it; run `bun pm trust rs-module-lexer` only if you need `bun run analyze`.
-- `bun start` — Vite dev server on port 8000, opens `/demo/`, with watch-mode build running in parallel.
-- `bun run build` — Production library build via Vite/Rollup. Outputs `dist/widget-toast.js` (ES module).
-- `bun run watch` — `vite build --watch` only (no dev server).
-- `bun run types` — Regenerate `src/definition-schema.d.ts` from `src/definition-schema.json` using `json2ts`. Run this after editing the JSON schema.
-- `bun run analyze` — Generate Custom Elements Manifest (`cem analyze --litelement`).
-- `npm run release` — `npm version patch`: preflight guards (on `main`, clean tree, not behind `origin/main`, generated files current, build passes), then the bump and a `dist/` rebuild (the `version` hook, so the local build registers the new tag), then commit, bare-semver tag, `git push --follow-tags`, then waits on the CI run and fails if the npm publish fails. `npm run release:minor` / `release:major` for other bumps. This is the one script that runs on npm rather than bun: `npm version` creates the **annotated** tag that `--follow-tags` needs, whereas the old `git tag` produced a lightweight tag that `--follow-tags` silently skips. The bare `v`-less prefix comes from `tag-version-prefix=""` in `.npmrc`.
-- `bun run link` / `bun run unlink` — Link this package into a sibling `../RESWARM/frontend` checkout for local integration testing.
+- `npm start` — Vite dev server on port 8000, opens `/demo/`, with watch-mode build running in parallel.
+- `npm run build` — Production library build via Vite/Rollup. Outputs `dist/widget-toast.js` (ES module).
+- `npm run watch` — `vite build --watch` only (no dev server).
+- `npm run types` — Regenerate `src/definition-schema.d.ts` from `src/definition-schema.json` using `json2ts`. Run this after editing the JSON schema.
+- `npm run analyze` — Generate Custom Elements Manifest (`cem analyze --litelement`).
+- `npm run release` — `npm version patch`: preflight guards (on `main`, clean tree, not behind `origin/main`, generated files current, build passes), then the bump and a `dist/` rebuild (the `version` hook, so the local build registers the new tag), then commit, bare-semver tag, `git push --follow-tags`, then waits on the CI run and fails if the npm publish fails. `npm run release:minor` / `release:major` for other bumps. `npm version` creates the **annotated** tag that `--follow-tags` needs (a plain `git tag` is lightweight and `--follow-tags` silently skips it). The bare `v`-less prefix comes from `tag-version-prefix=""` in `.npmrc`.
+- `npm run link` / `npm run unlink` — Link this package into a sibling `../RESWARM/frontend` checkout for local integration testing.
 
 No test runner or lint script is wired up despite README mentioning `lint`/`format` — those scripts do not exist in `package.json`. ESLint/Prettier configs are present (`.prettierrc`, eslint deps) but invocation is manual.
 
-Bun `>=1.2.0` required (see `engines`). Unlike the other widgets in this monorepo (which use npm + `package-lock.json`), widget-toast is Bun-only.
+Node `>=24.9.0`, npm `>=10.0.2` (per `engines`).
 
 ## Architecture
 
@@ -63,7 +60,7 @@ Not implemented (possible future enhancements): pause-auto-dismiss-on-hover and 
 
 ### Release flow
 
-Tags pushed to GitHub trigger `.github/workflows/build-publish.yml`: bun installs and builds, then the publish step alone runs on npm (`npm publish --access public`) via npm trusted publishing (OIDC — no `NPM_TOKEN`), and a GitHub Release is created. `bun publish` cannot do trusted publishing (oven-sh/bun#22423), which is why that one step switches to npm. `npm run release` is the canonical local command — it produces bare semver tags (e.g. `1.0.0`, not `v1.0.0`) to match the rest of the widget repos.
+Tags pushed to GitHub trigger `.github/workflows/build-publish.yml`: `npm ci`, build, then `npm publish --access public` via npm trusted publishing (OIDC — no `NPM_TOKEN`), and a GitHub Release is created. `npm run release` is the canonical local command — it produces bare semver tags (e.g. `1.0.0`, not `v1.0.0`) to match the rest of the widget repos.
 
 ## `aiSelection` in `src/definition-schema.json`
 

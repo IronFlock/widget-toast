@@ -6,6 +6,7 @@ on:
       - "*"
 
 # id-token lets the runner mint the OIDC token npm exchanges for publish rights.
+# Without it `npm publish` looks for a token and fails.
 permissions:
   contents: write
   id-token: write
@@ -18,15 +19,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      # bun installs and builds; npm publishes. `bun publish` cannot do npm
-      # trusted publishing (oven-sh/bun#22423) — it only knows tokens, and
-      # bypass-2FA tokens lose publish in January 2027. So the publish step,
-      # and only the publish step, runs on npm.
+      # Pinned, not "24": npm trusted publishing needs npm >= 11.5.1, and the
+      # npm bundled with a Node line is not something we want floating.
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
@@ -34,14 +28,14 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Build
-        run: bun run build
+        run: npm run build
 
-      # No NPM_CONFIG_TOKEN. npm detects the OIDC environment and authenticates
-      # against the trusted publisher configured for this package
-      # (IronFlock/widget-toast :: build-publish.yml).
+      # No .npmrc, no NPM_TOKEN. npm detects the OIDC environment and
+      # authenticates against the trusted publisher configured for this
+      # package (IronFlock/widget-toast :: build-publish.yml).
       - name: Publish to npm
         # Skips a version that is already on npm: the first @ironflock release of
         # each widget was published by hand (npm only accepts a trusted publisher
@@ -57,7 +51,7 @@ jobs:
 
       - name: Get the new version
         id: get_version
-        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         env:

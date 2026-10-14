@@ -10,7 +10,7 @@ This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) reco
 ## Installation
 
 ```bash
-bun add @ironflock/widget-toast
+npm i @ironflock/widget-toast
 ```
 
 ## Usage
@@ -55,8 +55,8 @@ for the rendering pipeline.
 ## Local Demo
 
 ```bash
-bun install
-bun start
+npm install
+npm start
 ```
 
 Opens `http://localhost:8000/demo/` — the demo cycles sample messages every ~1.5s to show

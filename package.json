@@ -5,7 +5,8 @@
     "author": "widget-toast",
     "version": "1.0.8",
     "engines": {
-        "bun": ">=1.2.0"
+        "node": ">=24.9.0",
+        "npm": ">=10.0.2"
     },
     "type": "module",
     "main": "dist/widget-toast.js",
@@ -17,11 +18,12 @@
         "thumbnail.webp"
     ],
     "scripts": {
-        "start": "bun --bun vite build --watch & bun --bun vite",
-        "build": "bun --bun vite build",
-        "watch": "bun --bun vite build --watch",
-        "link": "bun run build && bun link && cd ../RESWARM/frontend && bun link @ironflock/widget-toast",
-        "unlink": "bun unlink && cd ../RESWARM/frontend && bun install",
+        "analyze": "cem analyze --litelement",
+        "start": "vite build --watch & vite",
+        "build": "vite build",
+        "watch": "vite build --watch",
+        "link": "npm run build && npm link && cd ../RESWARM/frontend && npm link @ironflock/widget-toast",
+        "unlink": "npm unlink --global && cd ../RESWARM/frontend && npm unlink @ironflock/widget-toast && npm i @ironflock/widget-toast",
         "types": "cat src/definition-schema.json | json2ts --style.tabWidth=4 > src/definition-schema.d.ts",
         "preversion": "sh scripts/release-preflight.sh",
         "version": "npm run build",
