@@ -1,5 +1,5 @@
 {
-    "name": "@record-evolution/widget-toast",
+    "name": "@ironflock/widget-toast",
     "description": "REWidget widget-toast",
     "license": "MIT",
     "author": "widget-toast",
@@ -20,7 +20,7 @@
         "start": "bun --bun vite build --watch & bun --bun vite",
         "build": "bun --bun vite build",
         "watch": "bun --bun vite build --watch",
-        "link": "bun run build && bun link && cd ../RESWARM/frontend && bun link @record-evolution/widget-toast",
+        "link": "bun run build && bun link && cd ../RESWARM/frontend && bun link @ironflock/widget-toast",
         "unlink": "bun unlink && cd ../RESWARM/frontend && bun install",
         "types": "cat src/definition-schema.json | json2ts --style.tabWidth=4 > src/definition-schema.d.ts",
         "preversion": "sh scripts/release-preflight.sh",

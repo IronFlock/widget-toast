@@ -21,7 +21,7 @@ Bun `>=1.2.0` required (see `engines`). Unlike the other widgets in this monorep
 
 ## Architecture
 
-This repo publishes `@record-evolution/widget-toast`, a single Lit web component consumed by the IronFlock/RESWARM platform frontend as a dashboard widget. It shows transient toast notifications (success / error / info / warning).
+This repo publishes `@ironflock/widget-toast`, a single Lit web component consumed by the IronFlock/RESWARM platform frontend as a dashboard widget. It shows transient toast notifications (success / error / info / warning).
 
 ### Entry point and integration
 

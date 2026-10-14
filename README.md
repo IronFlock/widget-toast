@@ -10,14 +10,14 @@ This webcomponent follows the [open-wc](https://github.com/open-wc/open-wc) reco
 ## Installation
 
 ```bash
-bun add @record-evolution/widget-toast
+bun add @ironflock/widget-toast
 ```
 
 ## Usage
 
 ```html
 <script type="module">
-  import '@record-evolution/widget-toast/dist/widget-toast.js'
+  import '@ironflock/widget-toast/dist/widget-toast.js'
 </script>
 
 <!-- the tag is versioned (see package.json) so multiple versions can coexist -->
