@@ -3,7 +3,7 @@
     "description": "REWidget widget-toast",
     "license": "MIT",
     "author": "widget-toast",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "engines": {
         "bun": ">=1.2.0"
     },
