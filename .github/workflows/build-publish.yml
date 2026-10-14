@@ -41,7 +41,7 @@ jobs:
 
       # No NPM_CONFIG_TOKEN. npm detects the OIDC environment and authenticates
       # against the trusted publisher configured for this package
-      # (RecordEvolution/widget-toast :: build-publish.yml).
+      # (IronFlock/widget-toast :: build-publish.yml).
       - name: Publish to npm
         run: npm publish --access public
 

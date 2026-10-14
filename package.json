@@ -51,7 +51,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/RecordEvolution/widget-toast.git"
+        "url": "git+https://github.com/IronFlock/widget-toast.git"
     },
     "keywords": [
         "widget",
@@ -59,7 +59,7 @@
         "notification"
     ],
     "bugs": {
-        "url": "https://github.com/RecordEvolution/widget-toast/issues"
+        "url": "https://github.com/IronFlock/widget-toast/issues"
     },
-    "homepage": "https://github.com/RecordEvolution/widget-toast#readme"
+    "homepage": "https://github.com/IronFlock/widget-toast#readme"
 }
