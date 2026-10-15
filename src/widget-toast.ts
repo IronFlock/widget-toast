@@ -34,6 +34,63 @@ const ICONS: Record<Severity, string> = {
 // `.toast` style rule below — `dismissToast` waits this long before removing a toast.
 const LEAVE_MS = 250
 
+let colorContext: CanvasRenderingContext2D | null | undefined
+
+// A colour as [r, g, b, alpha] in sRGB (channels 0-255), parsed by the browser
+// itself through a canvas's fillStyle, so names, hsl(), hex with alpha,
+// color-mix() and the like all work. A value the browser rejects comes back
+// fully transparent, the way an invalid background-color leaves a tile. Only
+// the normalised string is read, never pixels: with Firefox's
+// resistFingerprinting on, as in Tor Browser, getImageData() answers with
+// random colours.
+const parseColor = (value: string): number[] => {
+    colorContext ??= document.createElement('canvas').getContext('2d')
+    if (!colorContext) return [0, 0, 0, 0]
+    // Chromium hands oklch(), lab(), color() and the like back as written;
+    // mixed into srgb they come back as color(srgb r g b / alpha). It rejects
+    // light-dark() outright but takes it inside color-mix().
+    for (const candidate of [value, `color-mix(in srgb, ${value} 100%, transparent)`]) {
+        // A rejected value leaves the previous fillStyle in place, so set it
+        // after two different placeholders: only an accepted one reads the same.
+        colorContext.fillStyle = '#000'
+        colorContext.fillStyle = candidate
+        const color = String(colorContext.fillStyle)
+        colorContext.fillStyle = '#fff'
+        colorContext.fillStyle = candidate
+        if (String(colorContext.fillStyle) !== color) continue
+        let match = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/.exec(color)
+        if (match) return [...match.slice(1).map((hex) => parseInt(hex, 16)), 1]
+        match = /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/.exec(color)
+        if (match) return match.slice(1).map(Number)
+        match = /^color\(srgb (\S+) (\S+) (\S+)(?: \/ (\S+))?\)$/.exec(color)
+        if (match) {
+            const [r, g, b] = match.slice(1, 4).map((v) => Math.min(Math.max(Number(v) || 0, 0), 1) * 255)
+            return [r, g, b, Number(match[4] ?? 1) || 0]
+        }
+    }
+    return [0, 0, 0, 0]
+}
+
+const surfaceCache = new Map<string, string>()
+
+// Paint the given colours, bottom first, over white, as the screen composites
+// a translucent background over what is behind it, and return the opaque
+// result as #rrggbb.
+const opaqueSurface = (layers: string[]): string => {
+    const key = JSON.stringify(layers)
+    const cached = surfaceCache.get(key)
+    if (cached !== undefined) return cached
+
+    let surface = [255, 255, 255]
+    for (const layer of layers) {
+        const [r, g, b, alpha] = parseColor(layer)
+        surface = [r, g, b].map((channel, i) => channel * alpha + surface[i] * (1 - alpha))
+    }
+    const hex = '#' + surface.map((channel) => Math.round(channel).toString(16).padStart(2, '0')).join('')
+    surfaceCache.set(key, hex)
+    return hex
+}
+
 @customElement('widget-toast-versionplaceholder')
 export class WidgetToast extends LitElement {
     @property({ type: Object })
@@ -42,7 +99,6 @@ export class WidgetToast extends LitElement {
     @property({ type: Object })
     theme?: Theme
 
-    @state() private themeBgColor?: string
     @state() private themeTextColor?: string
     @state() private toasts: Toast[] = []
 
@@ -85,7 +141,6 @@ export class WidgetToast extends LitElement {
     }
 
     registerTheme(theme?: Theme) {
-        this.themeBgColor = `var(--re-tile-background-color, ${theme?.theme_object?.backgroundColor || 'transparent'})`
         this.themeTextColor = `var(--re-text-color, ${theme?.theme_object?.title?.textStyle?.color || 'inherit'})`
     }
 
@@ -225,8 +280,10 @@ export class WidgetToast extends LitElement {
             padding: 8px 10px;
             border-radius: 6px;
             border-left: 4px solid var(--toast-accent, #1565c0);
-            /* Toasts must stay translucent even when the theme supplies a fully opaque
-               color, so the alpha is forced here rather than trusting --toast-bg. */
+            /* A slightly translucent, blurred card over whatever is beneath the
+               overlay. --toast-bg is opaque (surfaceColor()), so the card is always
+               85% opaque; mixing the tile colour itself multiplied its alpha, which
+               left the card see-through on translucent or transparent tiles. */
             background: color-mix(in srgb, var(--toast-bg, #ffffff) 85%, transparent);
             backdrop-filter: blur(3px);
             color: var(--toast-fg, #222222);
@@ -281,13 +338,30 @@ export class WidgetToast extends LitElement {
         }
     `
 
+    /**
+     * Opaque base colour for the cards. --re-text-color is picked to read on a
+     * tile as it is displayed, so the cards look like one: the tile colour
+     * (--re-tile-background-color, which a per-tile style can set for this
+     * widget) over the dashboard's --re-background-color over white. The theme
+     * background fills in for a missing tile colour or, standalone, for the
+     * dashboard's. The colours are read at render time, because a var() chain
+     * cannot be composited in JS; every new toast renders, so cards stay current.
+     */
+    private surfaceColor(): string {
+        const style = getComputedStyle(this)
+        const tile = style.getPropertyValue('--re-tile-background-color').trim()
+        const dashboard = style.getPropertyValue('--re-background-color').trim()
+        const themeBg = String(this.theme?.theme_object?.backgroundColor ?? '')
+        return opaqueSurface(dashboard ? [dashboard, tile || themeBg] : [themeBg, tile])
+    }
+
     render() {
         const position = this.inputData?.position ?? 'top-right'
         const showIcon = this.inputData?.showIcon ?? true
         const persistent = (this.inputData?.displayTime ?? 4000) === 0
         const showClose = persistent || (this.inputData?.showCloseButton ?? true)
 
-        const bg = this.themeBgColor || '#ffffff'
+        const bg = this.surfaceColor()
         const fg = this.themeTextColor || '#222222'
 
         return html`
