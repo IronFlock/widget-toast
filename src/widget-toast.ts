@@ -118,7 +118,10 @@ export class WidgetToast extends LitElement {
                 // Record the baseline without popping a toast.
                 this.hasReceivedFirstUpdate = true
             } else {
-                const message = (this.inputData?.message ?? '').trim()
+                // message is a textarea, which json2ts types as an empty interface;
+                // a bound column can also deliver a number.
+                const raw = this.inputData?.message
+                const message = typeof raw === 'string' || typeof raw === 'number' ? String(raw).trim() : ''
                 if (message) {
                     // Each host push is a distinct backend event, so we intentionally do NOT
                     // dedupe by value — two identical consecutive messages both show.
@@ -224,6 +227,9 @@ export class WidgetToast extends LitElement {
             position: absolute;
             display: flex;
             flex-direction: column;
+            /* When the toasts are taller than the tile, pack them against the
+               newest one, so the oldest overflow the tile and are clipped. */
+            justify-content: flex-end;
             gap: 1.5cqh;
             padding: 2cqh 2cqw;
             box-sizing: border-box;
@@ -231,6 +237,9 @@ export class WidgetToast extends LitElement {
             max-height: 100%;
             overflow: hidden;
             pointer-events: none;
+            /* fontSize from the config, else by the tile width. The toast's
+               spacing is in em, so the whole card grows with the text. */
+            font-size: var(--toast-font-size, clamp(13px, 4cqw, 18px));
         }
 
         .stack.top-right {
@@ -245,8 +254,8 @@ export class WidgetToast extends LitElement {
         }
         .stack.top-center {
             top: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0;
+            right: 0;
             align-items: center;
         }
         .stack.bottom-right {
@@ -263,23 +272,25 @@ export class WidgetToast extends LitElement {
         }
         .stack.bottom-center {
             bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0;
+            right: 0;
             flex-direction: column-reverse;
             align-items: center;
         }
 
         .toast {
+            /* Sized in em, so the card grows with the font size. */
+            --toast-pad-y: 0.6em;
             pointer-events: auto;
             display: flex;
             align-items: flex-start;
-            gap: 8px;
+            gap: 0.6em;
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
-            padding: 8px 10px;
-            border-radius: 6px;
-            border-left: 4px solid var(--toast-accent, #1565c0);
+            padding: var(--toast-pad-y) 0.75em;
+            border-radius: 0.45em;
+            border-left: 0.3em solid var(--toast-accent, #1565c0);
             /* A slightly translucent, blurred card over whatever is beneath the
                overlay. --toast-bg is opaque (surfaceColor()), so the card is always
                85% opaque; mixing the tile colour itself multiplied its alpha, which
@@ -288,7 +299,6 @@ export class WidgetToast extends LitElement {
             backdrop-filter: blur(3px);
             color: var(--toast-fg, #222222);
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-            font-size: clamp(11px, 3.5cqw, 14px);
             line-height: 1.35;
             opacity: 1;
             transform: translateY(0);
@@ -315,6 +325,12 @@ export class WidgetToast extends LitElement {
             white-space: pre-wrap;
             word-break: break-word;
             overflow-wrap: anywhere;
+            /* A toast taller than the tile (less the .stack padding) scrolls its
+               text instead of being cut off. */
+            max-height: calc(96cqh - 2 * var(--toast-pad-y));
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: color-mix(in srgb, currentColor 40%, transparent) transparent;
         }
 
         .close {
@@ -360,12 +376,14 @@ export class WidgetToast extends LitElement {
         const showIcon = this.inputData?.showIcon ?? true
         const persistent = (this.inputData?.displayTime ?? 4000) === 0
         const showClose = persistent || (this.inputData?.showCloseButton ?? true)
+        const fontSize = Number(this.inputData?.fontSize)
+        const stackStyle = Number.isFinite(fontSize) && fontSize > 0 ? `--toast-font-size:${fontSize}px` : ''
 
         const bg = this.surfaceColor()
         const fg = this.themeTextColor || '#222222'
 
         return html`
-            <div class="stack ${position}">
+            <div class="stack ${position}" style=${stackStyle}>
                 ${this.toasts.map((t) => {
                     const accent = this.accentColor(t.type)
                     return html`

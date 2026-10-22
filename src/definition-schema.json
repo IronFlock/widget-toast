@@ -2,7 +2,7 @@
     "title": "Toast Notification Configuration",
     "description": "A transient toast / notification widget. The backend publishes rows into a data-backend table; bind the message and severity columns of that table to this widget, and each newly published row pops up a short-lived toast inside the widget tile. Use it to surface live success / error / info / warning events on a dashboard. The message text and severity are data-driven (they reflect the latest published row), while the display time, position within the tile, stacking limit and styling are static configuration.",
     "aiSelection": {
-        "dataShape": "Newly published rows of a backend table. The message text and a severity (success / error / info / warning) are data-driven, and each new row pops up a short-lived notification inside the tile. Display time, position, stacking limit and colours are static configuration.",
+        "dataShape": "Newly published rows of a backend table. The message text and a severity (success / error / info / warning) are data-driven, and each new row pops up a short-lived notification inside the tile. The message may span several lines. Display time, position, stacking limit, font size and colours are static configuration.",
         "useWhen": [
             "Events should announce themselves as they happen — a job finished, a batch failed, a threshold was crossed.",
             "The dashboard should react visibly to newly published rows without the user watching a list.",
@@ -19,22 +19,35 @@
     "properties": {
         "message": {
             "title": "Message",
-            "description": "The notification text shown in the toast. Bind this to the message column of your data-backend table. Each newly published value triggers one toast. Empty values are ignored and line breaks are preserved.",
+            "description": "The notification text shown in the toast. Bind this to the message column of your data-backend table. Each newly published value triggers one toast. Empty values are ignored. The text can span several lines: line breaks are kept, and long lines wrap to the tile width.",
             "order": 1,
-            "type": "string"
+            "type": "textarea"
         },
         "type": {
             "title": "Severity",
             "description": "The severity of the toast, controlling its accent color and icon. Bind this to a column producing one of: success, error, info, warning. Defaults to 'info' when missing or unrecognized.",
             "order": 2,
             "type": "string",
-            "enum": ["success", "error", "info", "warning"],
+            "enum": [
+                "success",
+                "error",
+                "info",
+                "warning"
+            ],
             "default": "info"
+        },
+        "fontSize": {
+            "title": "Font Size",
+            "description": "Font size of the toast text in pixels. The whole toast grows with it: padding, icon, close button and accent border. Leave it empty to size the text by the tile width (13 to 18 px). A toast taller than the tile scrolls its text.",
+            "order": 3,
+            "dataDrivenDisabled": true,
+            "type": "number",
+            "minimum": 6
         },
         "displayTime": {
             "title": "Display Time (ms)",
             "description": "How long each toast stays visible before auto-dismissing, in milliseconds. Set to 0 to keep toasts until they are manually closed (the close button is forced on in that case). Defaults to 4000.",
-            "order": 3,
+            "order": 4,
             "dataDrivenDisabled": true,
             "type": "number",
             "default": 4000
@@ -42,7 +55,7 @@
         "position": {
             "title": "Position",
             "description": "Where the toast stack is anchored inside the widget tile. Defaults to 'top-right'.",
-            "order": 4,
+            "order": 5,
             "dataDrivenDisabled": true,
             "type": "string",
             "enum": [
@@ -58,7 +71,7 @@
         "maxVisible": {
             "title": "Max Visible",
             "description": "Maximum number of toasts shown at once. When exceeded, the oldest toast is dismissed to make room. Defaults to 3.",
-            "order": 5,
+            "order": 6,
             "dataDrivenDisabled": true,
             "type": "number",
             "default": 3
@@ -66,7 +79,7 @@
         "showIcon": {
             "title": "Show Icon",
             "description": "Show the severity icon (check / cross / info / warning) on the left of each toast. Defaults to true.",
-            "order": 6,
+            "order": 7,
             "dataDrivenDisabled": true,
             "type": "boolean",
             "default": true
@@ -74,7 +87,7 @@
         "showCloseButton": {
             "title": "Show Close Button",
             "description": "Show a close (x) button on each toast so it can be dismissed manually. Always shown when Display Time is 0. Defaults to true.",
-            "order": 7,
+            "order": 8,
             "dataDrivenDisabled": true,
             "type": "boolean",
             "default": true
@@ -82,28 +95,28 @@
         "successColor": {
             "title": "Success Color",
             "description": "Optional override for the accent color of success toasts (e.g. '#2e7d32'). If empty, a built-in green is used.",
-            "order": 8,
+            "order": 9,
             "dataDrivenDisabled": true,
             "type": "color"
         },
         "errorColor": {
             "title": "Error Color",
             "description": "Optional override for the accent color of error toasts (e.g. '#c62828'). If empty, a built-in red is used.",
-            "order": 9,
+            "order": 10,
             "dataDrivenDisabled": true,
             "type": "color"
         },
         "infoColor": {
             "title": "Info Color",
             "description": "Optional override for the accent color of info toasts (e.g. '#1565c0'). If empty, a built-in blue is used.",
-            "order": 10,
+            "order": 11,
             "dataDrivenDisabled": true,
             "type": "color"
         },
         "warningColor": {
             "title": "Warning Color",
             "description": "Optional override for the accent color of warning toasts (e.g. '#ed6c02'). If empty, a built-in amber is used.",
-            "order": 11,
+            "order": 12,
             "dataDrivenDisabled": true,
             "type": "color"
         }

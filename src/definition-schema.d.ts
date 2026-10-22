@@ -6,13 +6,13 @@
  */
 
 /**
- * The notification text shown in the toast. Bind this to the message column of your data-backend table. Each newly published value triggers one toast. Empty values are ignored and line breaks are preserved.
- */
-export type Message = string;
-/**
  * The severity of the toast, controlling its accent color and icon. Bind this to a column producing one of: success, error, info, warning. Defaults to 'info' when missing or unrecognized.
  */
 export type Severity = "success" | "error" | "info" | "warning";
+/**
+ * Font size of the toast text in pixels. The whole toast grows with it: padding, icon, close button and accent border. Leave it empty to size the text by the tile width (13 to 18 px). A toast taller than the tile scrolls its text.
+ */
+export type FontSize = number;
 /**
  * How long each toast stays visible before auto-dismissing, in milliseconds. Set to 0 to keep toasts until they are manually closed (the close button is forced on in that case). Defaults to 4000.
  */
@@ -40,6 +40,7 @@ export type ShowCloseButton = boolean;
 export interface ToastNotificationConfiguration {
     message?: Message;
     type?: Severity;
+    fontSize?: FontSize;
     displayTime?: DisplayTimeMs;
     position?: Position;
     maxVisible?: MaxVisible;
@@ -49,6 +50,12 @@ export interface ToastNotificationConfiguration {
     errorColor?: ErrorColor;
     infoColor?: InfoColor;
     warningColor?: WarningColor;
+    [k: string]: unknown;
+}
+/**
+ * The notification text shown in the toast. Bind this to the message column of your data-backend table. Each newly published value triggers one toast. Empty values are ignored. The text can span several lines: line breaks are kept, and long lines wrap to the tile width.
+ */
+export interface Message {
     [k: string]: unknown;
 }
 /**

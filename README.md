@@ -28,8 +28,9 @@ npm i @ironflock/widget-toast
 
 ```ts
 interface ToastNotificationConfiguration {
-  message?: string // data-driven: the latest published message (empty is ignored)
+  message?: string // data-driven: the latest published message (empty is ignored; line breaks are kept)
   type?: 'success' | 'error' | 'info' | 'warning' // data-driven severity (default 'info')
+  fontSize?: number // text size in px; the toast grows with it (default: 13-18 px by tile width)
   displayTime?: number // ms before auto-dismiss; 0 = persist until closed (default 4000)
   position?:
     | 'top-right'

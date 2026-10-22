@@ -30,6 +30,10 @@
                 box-sizing: border-box;
             }
 
+            #controls {
+                text-align: center;
+            }
+
             #demo > * {
                 width: 100%;
                 height: 100%;
@@ -39,6 +43,9 @@
 
     <body>
         <div id="demo"></div>
+        <p id="controls">
+            <label>Font size (px, empty = auto) <input id="font-size" type="number" min="6" /></label>
+        </p>
 
         <script type="module">
             import { render } from 'lit'
@@ -69,14 +76,21 @@
                 { message: 'Disk usage at 91%', type: 'warning' },
                 { message: 'Disk usage at 91%', type: 'warning' }, // identical → must still show
                 { message: 'Connection to broker lost', type: 'error' },
-                { message: 'Config reloaded', type: 'info' }
+                { message: 'Config reloaded', type: 'info' },
+                { message: 'Line 3 stopped\nReason: temperature above limit\nAction: check the cooling circuit', type: 'error' }
             ]
 
             let i = 0
             setInterval(() => {
                 const sample = samples[i % samples.length]
                 i++
-                widget.inputData = { ...data, message: sample.message, type: sample.type }
+                const fontSize = document.getElementById('font-size').valueAsNumber
+                widget.inputData = {
+                    ...data,
+                    message: sample.message,
+                    type: sample.type,
+                    ...(fontSize > 0 && { fontSize })
+                }
             }, 1500)
         </script>
     </body>
