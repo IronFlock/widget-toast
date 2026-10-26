@@ -23,13 +23,7 @@
         "watch": "vite build --watch",
         "link": "npm run build && npm link && cd ../RESWARM/frontend && npm link @ironflock/widget-toast",
         "unlink": "npm unlink --global && cd ../RESWARM/frontend && npm unlink @ironflock/widget-toast && npm i @ironflock/widget-toast",
-        "types": "cat src/definition-schema.json | json2ts --style.tabWidth=4 > src/definition-schema.d.ts",
-        "preversion": "sh scripts/release-preflight.sh",
-        "version": "npm run build",
-        "postversion": "git push --follow-tags && sh scripts/release-verify.sh",
-        "release": "npm version patch",
-        "release:minor": "npm version minor",
-        "release:major": "npm version major"
+        "types": "cat src/definition-schema.json | json2ts --style.tabWidth=4 > src/definition-schema.d.ts"
     },
     "dependencies": {
         "lit": "^3.3.3",
