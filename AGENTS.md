@@ -1,5 +1,120 @@
-# Development instructions
+# widget-toast development instructions
 
-Read `.ai/working-agreements.md` before editing.
+## Working agreements
 
-Follow the repository-specific guidance in `CLAUDE.md` and its referenced project documents.
+The organization maintains these agreements in the IronFlock `.github` repository at `.ai/working-agreements.md`.
+
+- Check the branch and working tree before editing. On main/master, create a
+  topic branch; otherwise keep the current branch. If another session owns
+  the branch or has uncommitted edits, ask where this work belongs before editing.
+  Do not create a worktree without explicit consent.
+- Preserve other sessions' changes. Re-read a file immediately before changing
+  it; do not overwrite a file that appeared after inspection.
+- Commit or push only when Marko explicitly requests it for this piece of work.
+  Do not amend, merge, rebase, tag, stash, or change remote settings implicitly.
+  Never add attribution trailers or generated-by notices to Git messages or PRs.
+- Production changes, releases, and registry pushes require explicit authorization
+  for the exact action. Do not hide production mutations in validation recipes.
+- Never print secret-file contents or copy credentials into project knowledge.
+  Do not describe private signing-key whereabouts in public documentation.
+- For code changes, add user-visible release notes for the version that will
+  actually ship them, preserving existing entries. Documentation-only setup,
+  tests, and invisible refactoring need no invented release-note entry.
+
+## Shared knowledge
+
+Store durable, verified project facts in the repository documentation; store task status and
+remaining work in `docs/handoff.md`. Include evidence paths and distinguish
+observations from assumptions. Shared files are reviewed repository content,
+not an automatic mirror of either agent's private memory or chat history.
+
+Skills live in `.agents/skills/`; `.claude/skills/` contains relative links to
+those same folders. Edit the canonical skill, not a duplicate. Tool permissions,
+credentials, hooks, and agent-specific runtime settings remain separate.
+
+Read the relevant repository documentation when starting work. When resuming work, read the relevant
+handoff and verify it against the current branch and files. Record checks
+and remaining work there when handing a task to another developer or agent.
+
+## Commands
+
+- `npm start` — Vite dev server on port 8000, opens `/demo/`, with watch-mode build running in parallel.
+- `npm run build` — Production library build via Vite/Rollup. Outputs `dist/widget-toast.js` (ES module).
+- `npm run watch` — `vite build --watch` only (no dev server).
+- `npm run types` — Regenerate `src/definition-schema.d.ts` from `src/definition-schema.json` using `json2ts`. Run this after editing the JSON schema.
+- `just lint` — what the CI gate checks besides the build: regenerating the committed generated files (`npm run types`) changes nothing. `just build` = `npm run build`.
+- `just merge` / `just release-patch` (`release-minor`, `release-major`) — pull requests into `main` from a feature branch with everything committed: a no-release one, or a release one whose merge publishes to npm in CI (`.github/workflows/build-publish.yml`), then the release GitHub App tags the bare version and creates the GitHub release. Never `npm publish`, tag or edit the version by hand.
+- `npm run link` / `npm run unlink` — Link this package into a sibling `../RESWARM/frontend` checkout for local integration testing.
+
+No test runner or lint script is wired up despite README mentioning `lint`/`format` — those scripts do not exist in `package.json`. ESLint/Prettier configs are present (`.prettierrc`, eslint deps) but invocation is manual.
+
+Node `>=24.9.0`, npm `>=10.0.2` (per `engines`).
+
+## Architecture
+
+This repo publishes `@ironflock/widget-toast`, a single Lit web component consumed by the IronFlock/RESWARM platform frontend as a dashboard widget. It shows transient toast notifications (success / error / info / warning).
+
+### Entry point and integration
+
+- `src/widget-toast.ts` defines the Lit element. The custom element tag is `widget-toast-versionplaceholder` — the literal string `versionplaceholder` is replaced at build time by `@rollup/plugin-replace` (see `vite.config.ts`) with `pkg.version`. This versioned tag name lets multiple widget versions coexist on the same page (the host app reads the version from `package.json` and constructs the tag dynamically — see `demo/index.html`).
+- The host platform passes data via two reactive properties: `inputData: ToastNotificationConfiguration` (the message + config) and `theme: { theme_name, theme_object }`. Theme can also be supplied via CSS custom properties `--re-text-color` and `--re-tile-background-color`. The text colour is not snapshotted: `registerTheme()` stores a `var(--re-text-color, <theme value>)` chain, so a change to the host property repaints live without the widget being told. The card background is read at render time instead (every new toast renders): `surfaceColor()` composites the tile colour (`--re-tile-background-color`, which a per-tile style can set for this widget) over the dashboard's `--re-background-color` over white into an opaque `#rrggbb`, so the cards look like a tile and `--re-text-color` reads on them. The browser parses each colour through a canvas `fillStyle` and the blend is plain source-over in JS; never read canvas pixels for it, since Firefox's `resistFingerprinting` randomises them.
+- **This widget is fully self-contained — it has NO `echarts` and NO peer dependencies.** `lit` and `tslib` are bundled into `dist/widget-toast.js` (unlike `widget-doughnut`, the Rollup config does not externalize anything).
+
+### How "listening to a topic" works
+
+Widgets in this ecosystem are purely presentational and never open their own MQTT/WebSocket connections. The host (`IronFlock-UI/src/components/widget-item.ts`) subscribes to the backend over WAMP and pushes the latest row into the widget's `inputData`. So a user "configures a topic the toast listens to" by binding the toast's `message` (and `type`) field to a backend table column in the dashboard editor; when the backend writes a row, the host replaces `inputData` with a **new object reference** and the widget reacts. There is intentionally no literal `topic` field in the widget.
+
+### Data schema
+
+- `src/definition-schema.json` is the source of truth for the input shape. It is consumed both as runtime documentation by the platform's widget configuration UI (note the `order`, `dataDrivenDisabled`, and rich `description` fields, which are platform-specific extensions read by the IronFlock dashboard editor) and compiled to `src/definition-schema.d.ts` via `npm run types`. The component imports `ToastNotificationConfiguration` from the generated `.d.ts`.
+- `message` and `type` (severity) are **data-driven** (no `dataDrivenDisabled`) — they reflect the latest published row. `fontSize`, `displayTime`, `position`, `maxVisible`, `showIcon`, `showCloseButton`, and the per-severity color overrides are **static config** (`dataDrivenDisabled: true`).
+- `message` is `type: "textarea"` (it was `string` up to 1.0.10) so the editor can enter line breaks. Studio stores both as `$str:` and the AI validator treats both as strings, so old values and bindings carry over. json2ts makes it an empty interface, so the component reads it with a `typeof` check (a bound column can also deliver a number).
+- Note: `json2ts` maps `"type": "color"` fields to *empty interfaces*, not `string`. The component therefore reads the `*Color` overrides defensively (indexed `Record<string, unknown>` cast + `typeof === 'string'` check) in `accentColor()`.
+- `src/default-data.json` is sample data used by the demo.
+
+### Toast pipeline (inside `widget-toast.ts`)
+
+1. **Trigger** — the host replaces `inputData` on each new backend row, so `update()` sees `changedProperties.has('inputData')`. The first such update is suppressed (it carries the stale last-persisted value on dashboard load). Every subsequent push with a non-empty `message` enqueues exactly one toast. Identical consecutive messages are intentionally NOT deduped — each push is a real event. (Tradeoff: editing a static config field in the dashboard editor also replaces `inputData` and can fire one spurious toast; accepted — the clean fix would be host-side.)
+2. **`enqueueToast()`** — assigns a unique id (`Date.now() + counter`), enforces `maxVisible` by hard-dropping the oldest active toasts (clearing their timers first), and schedules a `setTimeout(displayTime)` dismissal unless `displayTime === 0` (persistent).
+3. **`dismissToast()`** — sets the toast's `leaving` flag to play the CSS exit transition, then removes it after `LEAVE_MS`. **`LEAVE_MS` must equal the `transition` duration in the `.toast` style rule** — they are a coupling point.
+4. **Timers** — all `setTimeout` handles live in a `Map` keyed by toast id and are cleared in `disconnectedCallback()`.
+5. **Rendering** — an absolutely-positioned `.stack` inside a `position: relative; overflow: hidden` host. The `position` enum maps to CSS anchors (bottom positions use `flex-direction: column-reverse`). Each toast is a card with a colored left border, optional severity icon, the message (`white-space: pre-wrap`), and an optional close button. The card is `color-mix(in srgb, <opaque surface> 85%, transparent)` with a 3px backdrop blur: always 85% opaque, because the base is opaque. Mixing the tile colour itself used to multiply its alpha, which left cards see-through (or without any background) on translucent and transparent tiles. Studio paints no tile background or border behind this widget (`widget-item`'s `is-overlay`), since its tile floats above other widgets; the cards are the only visible surface. Sizing uses container-query units (`cqw`/`cqh`, `clamp()`), so no `ResizeObserver` is needed. The `.stack` carries the font size: `fontSize` px through `--toast-font-size`, else `clamp(13px, 4cqw, 18px)` (11–14 px up to 1.0.10). Everything on the card (padding, gap, radius, accent border, icon, close button) is in `em`, so the card grows with the text. Overflow: `.stack` uses `justify-content: flex-end` so, when the toasts are taller than the tile, the oldest ones overflow and are clipped and the newest stays in view; a single toast taller than the tile scrolls its `.message` (`max-height: calc(96cqh - 2 * --toast-pad-y)`). The centre positions span the tile (`left: 0; right: 0`) instead of `left: 50%` + `translateX(-50%)`, which let toasts wrap at only half the tile width.
+
+Default severity colors: success `#2e7d32` ✓, error `#c62828` ✕, info `#1565c0` ℹ, warning `#ed6c02` ⚠.
+
+Not implemented (possible future enhancements): pause-auto-dismiss-on-hover and a `prefers-reduced-motion` opt-out.
+
+### Build pipeline
+
+`vite.config.ts` configures a library build:
+
+- Single ES-module output (`dist/widget-toast.js`) with sourcemaps and a license banner.
+- Nothing is externalized (self-contained widget; `lit`/`tslib` are bundled).
+- `@rollup/plugin-replace` substitutes `versionplaceholder` → current `package.json` version (affects the custom element tag name and the `version` class field).
+- `process.env.NODE_ENV` is hardcoded to `'production'`.
+
+### Release flow
+
+Release on merge, through the shared IronFlock harness (IronFlock/workflows): `main` takes pull requests only, with green `ci-ok` and `security / report`. `just release-patch` bumps `package.json` and the lockfile and opens the release pull request `release widget-toast <version>`; its merge runs `.github/workflows/build-publish.yml` (the name stays because npm's trusted publisher names it): `npm ci`, build, `npm publish` via npm trusted publishing (OIDC, no `NPM_TOKEN`), then the release GitHub App sets the bare-version tag (`1.0.10`, no `v`) and creates the GitHub Release. `just merge` opens a pull request that releases nothing.
+
+## `aiSelection` in `src/definition-schema.json`
+
+The schema root carries an `aiSelection` block next to `title` and `description`. It is **not** JSON Schema and describes no config field — it exists so the IronFlock AI's Widget Builder can pick the right widget for a given shape of data, using knowledge only the widget author has:
+
+```jsonc
+"aiSelection": {
+  "dataShape": "…what columns this widget consumes and what each one means…",
+  "useWhen":   ["…a situation, naming the properties that express it…"],
+  "notFor":    ["…a situation this widget is wrong for, naming the widget to use instead…"]
+}
+```
+
+It is inert everywhere else, and must stay that way: `json2ts` ignores it (the generated `.d.ts` is byte-identical with and without it), the dashboard config editor renders only `schema.properties`, and the AI service's `validate_widget` validates *configs* against the schema, skipping unknown Draft-7 keywords.
+
+When maintaining it:
+
+- `notFor` is the high-value half and the part plain descriptions always omit. Every entry must name the widget that *should* be used, or it rejects without routing.
+- Write for an LLM with no other documentation: describe the visible result and the user's intent, not the implementation.
+- Prefer entries that discriminate against a *neighbouring* widget. Generic rejections are cheap; the ones that pay are those an author could plausibly get wrong.
+- The `notFor` lists are a set across all `widget-*` repos and are meant to be reciprocal — if this widget routes to another for some case, that widget should usually route back for the converse. Changing one side is a cue to check the other.
+- Update it whenever a property changes what this widget can *do*, not just how it looks.

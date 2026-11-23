@@ -50,7 +50,7 @@ interface ToastNotificationConfiguration {
 ```
 
 `message` and `type` are data-driven (bound to backend columns); everything else is static
-configuration. See `src/definition-schema.json` for the authoritative schema and `CLAUDE.md`
+configuration. See `src/definition-schema.json` for the authoritative schema and `AGENTS.md`
 for the rendering pipeline.
 
 ## Local Demo
