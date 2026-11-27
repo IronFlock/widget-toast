@@ -58,7 +58,7 @@ This repo publishes `@ironflock/widget-toast`, a single Lit web component consum
 
 - `src/widget-toast.ts` defines the Lit element. The custom element tag is `widget-toast-versionplaceholder` — the literal string `versionplaceholder` is replaced at build time by `@rollup/plugin-replace` (see `vite.config.ts`) with `pkg.version`. This versioned tag name lets multiple widget versions coexist on the same page (the host app reads the version from `package.json` and constructs the tag dynamically — see `demo/index.html`).
 - The host platform passes data via two reactive properties: `inputData: ToastNotificationConfiguration` (the message + config) and `theme: { theme_name, theme_object }`. Theme can also be supplied via CSS custom properties `--re-text-color` and `--re-tile-background-color`. The text colour is not snapshotted: `registerTheme()` stores a `var(--re-text-color, <theme value>)` chain, so a change to the host property repaints live without the widget being told. The card background is read at render time instead (every new toast renders): `surfaceColor()` composites the tile colour (`--re-tile-background-color`, which a per-tile style can set for this widget) over the dashboard's `--re-background-color` over white into an opaque `#rrggbb`, so the cards look like a tile and `--re-text-color` reads on them. The browser parses each colour through a canvas `fillStyle` and the blend is plain source-over in JS; never read canvas pixels for it, since Firefox's `resistFingerprinting` randomises them.
-- **This widget is fully self-contained — it has NO `echarts` and NO peer dependencies.** `lit` and `tslib` are bundled into `dist/widget-toast.js` (unlike `widget-doughnut`, the Rollup config does not externalize anything).
+- **This widget has NO `echarts` and NO peer dependencies.** `lit` is external (studio's import map provides one copy for all widgets); `tslib` is bundled into `dist/widget-toast.js`.
 
 ### How "listening to a topic" works
 
@@ -89,7 +89,7 @@ Not implemented (possible future enhancements): pause-auto-dismiss-on-hover and 
 `vite.config.ts` configures a library build:
 
 - Single ES-module output (`dist/widget-toast.js`) with sourcemaps and a license banner.
-- Nothing is externalized (self-contained widget; `lit`/`tslib` are bundled).
+- `lit` is externalized; `tslib` is bundled.
 - `@rollup/plugin-replace` substitutes `versionplaceholder` → current `package.json` version (affects the custom element tag name and the `version` class field).
 - `process.env.NODE_ENV` is hardcoded to `'production'`.
 

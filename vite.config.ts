@@ -29,6 +29,7 @@ export default defineConfig({
         },
         sourcemap: true,
         rollupOptions: {
+            external: [/^lit/, /^@lit/],
             output: {
                 banner: '/* @license Copyright (c) 2026 Record Evolution GmbH. All rights reserved.*/'
             }
