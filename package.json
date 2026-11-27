@@ -21,8 +21,8 @@
         "start": "vite build --watch & vite",
         "build": "vite build",
         "watch": "vite build --watch",
-        "link": "npm run build && npm link && cd ../RESWARM/frontend && npm link @ironflock/widget-toast",
-        "unlink": "npm unlink --global && cd ../RESWARM/frontend && npm unlink @ironflock/widget-toast && npm i @ironflock/widget-toast",
+        "link": "npm run build && npm link && cd ../../studio && npm link @ironflock/widget-toast",
+        "unlink": "npm unlink --global && cd ../../studio && npm unlink @ironflock/widget-toast && npm i @ironflock/widget-toast",
         "types": "cat src/definition-schema.json | json2ts --style.tabWidth=4 > src/definition-schema.d.ts"
     },
     "dependencies": {
